@@ -20,41 +20,49 @@ Class(Argon.Storage, 'MongoDB')({
 
             this.driver = config.driver;
             this.collectionName = config.collectionName;
-            this.collection = config.driver.collection(this.collectionName);
-            
+            this.collection = this.driver.collection(this.collectionName);
+
             return this;
         },
 
         create : function create(requestObj, callback) {
-            var storage = this;
+            var storage = this,
+                i;
 
-            for (var i = 0; i < this.preprocessors.length; i++) {
+            for (i = 0; i < this.preprocessors.length; i++) {
                 requestObj.data = this.preprocessors[i](requestObj.data, requestObj);
             }
 
-            this.collection.insert(requestObj.data, function handleInsert(error, data) {
+            this.collection.insert(requestObj.data, function (error, data) {
+                var j;
                 if (error) {
-                    return callback(error);
+                    callback(error);
                 }
-
-                data = data[0];
+                else {
+                    data = data[0];
                 
-                for (var i = 0; i < storage.processors.length; i++) {
-                    data = storage.processors[i](data, requestObj);
-                }
+                    for (j = 0; j < storage.processors.length; i+= 1) {
+                        data = storage.processors[j](data, requestObj);
+                    }
 
-                callback(data);
+                    callback(data);
+                }
             });
 
             return this;
         },
 
         update : function update(requestObj, callback) {
-            for (i = 0; i < this.preprocessors.length; i++) {
+            var i,
+                query = {
+                    _id : requestObj.data.id
+                };
+
+            for (i = 0; i < this.preprocessors.length; i += 1) {
                 requestObj.data = this.preprocessors[i](requestObj.data, requestObj);
             }
 
-            this.collection.update({_id : requestObj.data._id}, requestObj.data, function handleInsert(error, data) {
+            this.collection.update(query, requestObj.data, function (error, data) {
                 callback(error || data);
             });
 
@@ -62,42 +70,80 @@ Class(Argon.Storage, 'MongoDB')({
         },
 
         find : function find(requestObj, callback) {
-            this.collection.find().toArray(function findCallback(error, data) {
-                callback(error || data.map(function (item) { return new requestObj.model(item)}));
+            this.collection.find().toArray(function (error, data) {
+                var result;
+
+                if (error) {
+                    callback(error);
+                }
+                else {
+                    result = data.map(function (item) {
+                        return new requestObj.model(item);
+                    });
+                    callback(result)
+                }
             });
 
             return this;
         },
 
         findOne : function findOne(requestObj, callback) {
-            this.collection.find({_id : requestObj.data._id}, function findCallback(error, data) {
-                callback(error || data.map(function (item) { return new requestObj.model(item)})[0]);
+            var query = {
+                _id : requestObj.data.id
+            }
+
+            this.collection.find(query, function (error, docs) {
+                var modelInstance;
+
+                if (error) {
+                    callback(error);
+                }
+                else {
+                    modelInstance = new requestObj.model(docs[0]);
+                    callback(modelInstance);
+                }
             });
 
             return this;
         },
 
         search : function search(requestObj, callback) {
-            this.collection.find(requestObj.query, function searchCallback(error, data) {
-                if (error) {
-                    return callback(error);
-                }
+            var result;
 
-                data.toArray(function arrayHandler(error, documents) {
-                    callback(JSON.parse(JSON.stringify(documents)).map(function (doc) { 
-                        return new requestObj.model(doc)
-                    }));
-                });
+            this.collection.find(requestObj.query, function (error, data) {
+                if (error) {
+                    callback(error);
+                }
+                else {
+                    data.toArray(function (error, docs) {
+                        if (error) {
+                            callback(error);
+                        }
+                        else {
+                            result = docs.map(function (doc) {
+                                return new requestObj.model(doc);
+                            });
+                            callback(result);
+                        }
+                    });
+                }
             });
 
             return this;
         },
 
         remove : function remove(requestObj, callback) {
-            var id = requestObj.data._id;
+            var query = {
+                _id : requestObj.data.id
+            };
 
-            this.collection.remove({_id : id}, function removeCallback(error, data) {
-                callback(error || data);
+            this.collection.remove(query, function (error, data) {
+                if (error) {
+                    callback(error);
+                }
+                else {
+                    callback(data);
+                }
             });
 
             return this;
