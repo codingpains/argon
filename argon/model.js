@@ -74,9 +74,10 @@ Module(Argon, 'Model').includes(CustomEventSupport, ValidationSupport)({
     @return [Array].
     **/
     search : function search(query, callback) {
-        var Model;
+        var Model,
+            request;
 
-        Model = this,
+        Model = this;
         request = {
             action : 'search',
             model : Model,
