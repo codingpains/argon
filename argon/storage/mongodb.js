@@ -29,22 +29,27 @@ Class(Argon.Storage, 'MongoDB')({
             var storage = this,
                 i;
 
+            // Early return when invalid data.
+            if (Object.prototype.toString.apply(requestObj.data, []) !== '[object Object]') {
+                callback(new Error('Data should be an object'));
+                return this;
+            }
+
             for (i = 0; i < this.preprocessors.length; i++) {
                 requestObj.data = this.preprocessors[i](requestObj.data, requestObj);
             }
 
             this.collection.insert(requestObj.data, function (error, data) {
                 var j;
+
                 if (error) {
                     callback(error);
                 }
                 else {
                     data = data[0];
-                
                     for (j = 0; j < storage.processors.length; j += 1) {
                         data = storage.processors[j](data, requestObj);
                     }
-
                     callback(data);
                 }
             });
