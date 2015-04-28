@@ -41,7 +41,7 @@ Class(Argon.Storage, 'MongoDB')({
                 else {
                     data = data[0];
                 
-                    for (j = 0; j < storage.processors.length; i+= 1) {
+                    for (j = 0; j < storage.processors.length; j += 1) {
                         data = storage.processors[j](data, requestObj);
                     }
 
