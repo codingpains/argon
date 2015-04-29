@@ -35,7 +35,6 @@ setupSuite = function setupSuite(db) {
             this.specify('1.2 should fail with invalid data and return error')(function () {
                 var spec = this;
                 storage.create('invalid data', function (error) {
-                    console.log('error', error);
                     spec.assert(error).toBeTruthy();
                     spec.completed();
                 });
@@ -69,8 +68,37 @@ setupSuite = function setupSuite(db) {
 
         });
 
-        this.describe('\n2. Search records')(function () {
-            this.specify('2.1 should search and return matching records')(function () {
+        this.describe('\n2. Update records')(function () {
+            this.specify('2.1 should update existing record')(function () {
+                var spec = this;
+                storage.create({data : {a : '2.1 a'}}, function (data) {
+                    var id = data._id;
+                    data.a = '2.1 b';
+                    storage.update({ data : data}, function (updated) {
+                        spec.assert(updated._id).toBe(id);
+                        spec.assert(updated.a).toBe('2.1 b');
+                        spec.completed();
+                    });
+                });
+            });
+
+            this.specify('2.2 should return error when updating non existing record')(function () {
+                var spec = this,
+                    fake = 'fakeid',
+                    data = { 
+                        _id : fake,
+                        a : '2.2'
+                    };
+
+                storage.update({ data : data}, function (error) {
+                    spec.assert(Object.prototype.toString.apply(error, [])).toBe('[object Error]');
+                    spec.completed();
+                });
+            });
+        });
+
+        this.describe('\n3. Search records')(function () {
+            this.specify('3.1 should search and return matching records')(function () {
                 var spec    = this,
                     gusData = {name : 'Gus', surname : 'Ortiz', age : 30},
                     ferData = {name : 'Azendal', surname : 'Transvina', age : 5000},

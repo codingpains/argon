@@ -28,8 +28,7 @@ Class(Argon.Storage, 'MongoDB')({
         create : function create(requestObj, callback) {
             var storage = this,
                 i;
-
-            // Early return when invalid data.
+            
             if (Object.prototype.toString.apply(requestObj.data, []) !== '[object Object]') {
                 callback(new Error('Data should be an object'));
                 return this;
@@ -58,17 +57,37 @@ Class(Argon.Storage, 'MongoDB')({
         },
 
         update : function update(requestObj, callback) {
-            var i,
-                query = {
-                    _id : requestObj.data.id
-                };
+            var storage = this,
+                query,
+                i;
+            
+            if (Object.prototype.toString.apply(requestObj.data, []) !== '[object Object]') {
+                callback(new Error('Data should be an object'));
+                return this;
+            }
+
+            query = {
+                _id : requestObj.data.id || requestObj.data._id
+            };
 
             for (i = 0; i < this.preprocessors.length; i += 1) {
                 requestObj.data = this.preprocessors[i](requestObj.data, requestObj);
             }
 
             this.collection.update(query, requestObj.data, function (error, data) {
-                callback(error || data);
+                if (error) {
+                    callback(error);
+                }
+                else if (data === 0) {
+                    callback(new Error('Record not found'));
+                }
+                else {
+                    data = requestObj.data;
+                    for (j = 0; j < storage.processors.length; j += 1) {
+                        data = storage.processors[j](data, requestObj);
+                    }
+                    callback(data);
+                }
             });
 
             return this;
